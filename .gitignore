@@ -1,0 +1,12 @@
+
+\.idea/
+
+ExternalData/
+
+__pycache__/
+
+*.txt
+
+*.csv
+
+config\.json

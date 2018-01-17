@@ -1,8 +1,6 @@
 import sqlite3
 from tkinter import *
 from tkinter import ttk
-from yahoo_finance import Share
-from gui_details import gui_details
 import requests
 
 sqlDBpath = "C:/sqlite/db/"
@@ -47,7 +45,7 @@ def loadPortfolioTable():
     r = r['Stock Quotes']
     quotes = {}
     for i in r:
-       quotes[i['1. symbol']] = i['2. price']
+        quotes[i['1. symbol']] = i['2. price']
 
     x = 1
 

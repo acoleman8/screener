@@ -24,12 +24,14 @@ ISINlist = cur.fetchall()
 
 # Read Transaction data for each ISIN
 for ISIN in ISINlist:
-            
-    cur.execute("Select Symbol, Number, Price, Value from Transactions left join Identifiers on Transactions.ISIN = Identifiers.ISIN where Transactions.ISIN =:ISIN order by date(Date) asc",{'ISIN':ISIN[0]})
+
+    cur.execute(
+        "Select Symbol, Number, Price, Value from Transactions left join Identifiers on Transactions.ISIN = Identifiers.ISIN where Transactions.ISIN =:ISIN order by date(Date) asc",
+        {'ISIN': ISIN[0]})
 
     result = cur.fetchall()
 
-# Calculate Average Price
+    # Calculate Average Price
     symbol = result[0][0]
     total = 0
     totalValue = 0
@@ -45,12 +47,13 @@ for ISIN in ISINlist:
         totalValue += value
 
         if total != 0:
-            avgPrice = totalValue/total*-1
+            avgPrice = totalValue / total * -1
 
-        print (symbol + ", " + str(total) + ", " + str(avgPrice))
+        print(symbol + ", " + str(total) + ", " + str(avgPrice))
 
     avgPrice = round(avgPrice, 2)
-    cur.execute("Insert into AvgPrice values (:v1, :v2, :v3, :v4)", {'v1': symbol, 'v2': avgPrice, 'v3': totalValue, 'v4': total})
+    cur.execute("Insert into AvgPrice values (:v1, :v2, :v3, :v4)",
+                {'v1': symbol, 'v2': avgPrice, 'v3': totalValue, 'v4': total})
 
 # Select and print all from table
 if printCheck == 1:

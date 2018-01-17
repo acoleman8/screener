@@ -26,8 +26,7 @@ ISINlist = cur.fetchall()
 for ISIN in ISINlist:
 
     exchange = ISIN[1]
-    ticker = ''
-    
+
     if exchange == 'NDQ':
         exchange = 'US'
     elif exchange == 'EAM' or exchange == 'DEGIRO':
@@ -35,19 +34,17 @@ for ISIN in ISINlist:
     elif exchange == 'NSY':
         exchange = 'UN'
 
-
-    data = [{"idType":"ID_ISIN","idValue":ISIN[0],'exchCode':exchange}]
+    data = [{"idType": "ID_ISIN", "idValue": ISIN[0], 'exchCode': exchange}]
     r = requests.post('https://api.openfigi.com/v1/mapping',
-                    headers={"Content-Type": "text/json",'X-OPENFIGI-APIKEY': '3fee7d1a-0429-43b1-a9ca-db07551b2db9'},
-                    json=data)
+                      headers={"Content-Type": "text/json",
+                               'X-OPENFIGI-APIKEY': '3fee7d1a-0429-43b1-a9ca-db07551b2db9'},
+                      json=data)
 
     r = r.json()
     ticker = (r[0]['data'][0]['ticker'])
-    cur.execute('Insert into Identifiers values (:v0,:v1,:v2)',{'v0':ISIN[0],'v1':ticker,'v2':exchange})
-            
+    cur.execute('Insert into Identifiers values (:v0,:v1,:v2)', {'v0': ISIN[0], 'v1': ticker, 'v2': exchange})
 
-
-#Select and print all from table
+# Select and print all from table
 if printcheck == 1:
     cur.execute("select * from Identifiers")
 
@@ -55,9 +52,8 @@ if printcheck == 1:
     for i in result:
         print(i)
 
-#Commit changes and close    
+# Commit changes and close
 con.commit()
 
 cur.close()
 con.close()
-
