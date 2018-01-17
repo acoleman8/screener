@@ -1,8 +1,10 @@
+import requests
 import sqlite3
-from yahoo_finance import Share
+
+from lxml import html
 
 printCheck = 0
-incremental = 0
+incremental = 1
 
 sqlDBPath = "C:/sqlite/db/"
 sqlDBName = "test.db"
@@ -17,34 +19,57 @@ cur = con.cursor()
 if incremental == 0:
     cur.execute('drop table if exists Details')
 cur.execute(
-    "create table if not exists Details (ISIN VARCHAR, Symbol VARCHAR, Exchange VARCHAR, Name VARCHAR, Market_Cap VARCHAR, Target_Price FLOAT, Current_Price FLOAT, PE FLOAT, PB FLOAT, PEG FLOAT, MA50 FLOAT, MA200 FLOAT)")
+    "create table if not exists Details (Symbol VARCHAR, Name VARCHAR, Price DECIMAL, MarketCap Decimal, TargetPrice DECIMAL, PE DECIMAL, PB DECIMAL, PEG DECIMAL, MA50 DECIMAL, MA200 DECIMAL)")
 
-# Read ISINs from Transactions table
-cur.execute("Select Symbol, ISIN, Exchange from Identifiers")
-
+cur.execute(
+    "Select Symbol from Companies where Industry = 'Semiconductors'")
 result = cur.fetchall()
 
 for row in result:
     symbol = row[0]
-    ISIN = row[1]
-    exchange = row[2]
-    if exchange == 'NA':
-        stock = Share(symbol + '.AS')
-    else:
-        stock = Share(symbol)
-    name = stock.get_name()
-    marketCap = stock.get_market_cap()
-    targetPrice = stock.get_one_yr_target_price()
-    currentPrice = stock.get_price()
-    pe = stock.get_price_earnings_ratio()
-    pb = stock.get_price_book()
-    peg = stock.get_price_earnings_growth_ratio()
-    ma50 = stock.get_50day_moving_avg()
-    ma200 = stock.get_200day_moving_avg()
+    print(symbol)
 
-    cur.execute('Insert into Details values (:v0,:v1,:v2,:v3,:v4,:v5,:v6,:v7,:v8,:v9,:v10,:v11)',
-                {'v0': ISIN, 'v1': symbol, 'v2': exchange, 'v3': name, 'v4': marketCap, 'v5': targetPrice,
-                 'v6': currentPrice, 'v7': pe, 'v8': pb, 'v9': peg, 'v10': ma50, 'v11': ma200})
+    cur.execute("INSERT into Details (Symbol) VALUES (:v0) EXCEPT SELECT Symbol FROM Details WHERE Symbol = :v0",
+                {'v0': symbol})
+
+    statsURL = 'https://api.iextrading.com/1.0/stock/' + symbol + '/stats'
+    # requestURL = 'https://api.iextrading.com/1.0/ref-data/symbols'
+
+    r = requests.get(statsURL)
+    r = r.json()
+
+    name = r['companyName']
+    marketCap = r['marketcap']
+    pb = r['priceToBook']
+    ma50 = r['day50MovingAvg']
+    ma200 = r['day200MovingAvg']
+
+    quoteURL = 'https://api.iextrading.com/1.0/stock/' + symbol + '/quote'
+
+    r = requests.get(quoteURL)
+    r = r.json()
+
+    price = r['latestPrice']
+    pe = r['peRatio']
+
+    page = requests.get('https://finance.yahoo.com/quote/' + symbol)
+    tree = html.fromstring(page.content)
+
+    target = tree.xpath('//*[@id="quote-summary"]/div[2]/table/tbody/tr[8]/td[2]/span/text()')
+    if len(target) > 0:
+        target = target[0]
+    else:
+        target = 'N/A'
+
+    cur.execute(
+        'UPDATE Details SET Name = :name, Price = :price, MarketCap = :marketCap, TargetPrice = :target, PE = :pe, PB = :pb, MA50 = :ma50, MA200 = :ma200 WHERE Symbol = :symbol;',
+        {'name': name, 'price': price, 'marketCap': marketCap, 'target': target, 'pe': pe, 'pb': pb, 'ma50': ma50,
+         'ma200': ma200, 'symbol': symbol})
+
+# for row in r:
+# print(row)
+# print(row + ',' + str(r[row]))
+
 
 # Commit changes and close
 con.commit()
